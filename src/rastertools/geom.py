@@ -7,6 +7,8 @@ import shapely
 import xarray as xr
 from rasterio.features import shapes
 from rasterio.mask import mask
+from rasterio.enums import Resampling
+from rasterio.warp import reproject, calculate_default_transform
 from shapely.geometry import box
 from pyogrio import read_dataframe
 
@@ -159,3 +161,110 @@ def get_bounds(path : str) -> Tuple[shapely.geometry.polygon.Polygon, str]:
             return _get_raster_bounds(path), 'raster'
         case '.shp' | '.geojson':
             return _get_shp_bounds(path), 'shapefile'
+        
+
+def resample(
+    img_path : str, 
+    res : float, 
+    how : str = 'nearest'
+    ) -> Tuple[np.ndarray, Dict]:
+    """
+    Resamples a raster image to the specified resolution
+
+    Parameters
+    ----------
+        img_path: path to raster image
+        res: desired output resolution
+        how (optional): the resampling method 
+    Returns
+    ----------
+        img: resampled raster image
+        meta: metadata of resampled raster image
+    """
+    rs_alg = {
+        'nearest' : Resampling.nearest,
+        'bilinear' : Resampling.bilinear,
+        'cubic' : Resampling.cubic,
+        'average' : Resampling.average
+    }
+    
+    with rst.open(img_path) as src:
+        meta = src.meta.copy()
+        scale_factor = res / src.res[0]
+        img = src.read(
+            out_shape=(
+                src.count, 
+                int(src.height / scale_factor), 
+                int(src.width / scale_factor)
+            ), resampling=rs_alg[how]
+        )
+        transform = src.transform * src.transform.scale(
+            (src.width / img.shape[-1]),
+            (src.height / img.shape[-2])
+        )
+        meta.update({
+            'transform' : transform,
+            'height' : img.shape[-2],
+            'width' : img.shape[-1],
+        })
+    return img, meta
+
+
+def warp(
+    src_path : str, 
+    dst_path : str, 
+    ) -> Tuple[np.ndarray, Dict]:
+    """
+    Aligns a raster using a reference raster by projecting it and warping if a
+    projection is not sufficient.
+
+    Parameters
+    ----------
+        src_path: path to raster image to be aligned
+        dst_path: path to the reference raster image
+    Returns
+    ----------
+        img: aligned raster img 
+        src_meta: metadata of aligned raster img
+    """
+    with rst.open(dst_path) as src:
+        dst_img = src.read(1)
+        dst_meta = src.meta.copy()
+        bounds = src.bounds
+
+    with rst.open(src_path) as src:
+        src_img = src.read(1)
+        src_meta = src.meta.copy()
+        img, transform = reproject(
+            source=src_img,
+            destination=dst_img,
+            src_transform=src_meta['transform'],
+            src_crs=src_meta['crs'],
+            src_nodata=src_meta['nodata'],
+            dst_transform=dst_meta['transform'],
+            dst_crs=dst_meta['crs']
+        )
+        height, width = img.shape
+
+    # if a reprojection does not align the two arrays, the source will be warped instead
+    if not img.shape == dst_img.shape:
+        transform, width, height = calculate_default_transform(
+            src_crs=src_meta['crs'],
+            dst_crs=dst_meta['crs'],
+            width=src_meta['width'],
+            height=src_meta['height'],
+            left=bounds[0],
+            bottom=bounds[1],
+            right=bounds[2],
+            top=bounds[3],
+            dst_width=dst_meta['width'],
+            dst_height=dst_meta['height']
+        )
+
+    src_meta.update({
+        'transform' : transform,
+        'height' : height,
+        'width' : width,
+    })
+            
+    return img, src_meta
