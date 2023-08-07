@@ -1,7 +1,7 @@
 from typing import Dict, Tuple
 
 import numpy as np
-import rasterio as rst
+from rasterio import Affine
 from pyproj import CRS
 
 
@@ -48,8 +48,8 @@ def ascii_to_tif(
         'height' : int(asc_meta['nrows']),
         'count' : 1,
         'crs' : CRS.from_epsg(epsg),
-        'transform' : rst.Affine(asc_meta['cellsize'], 0.0, asc_meta['xllcorner'], 
-                                 0.0, -asc_meta['cellsize'], asc_meta['yllcorner'])
+        'transform' : Affine(asc_meta['cellsize'], 0.0, asc_meta['xllcorner'], 
+                             0.0, -asc_meta['cellsize'], asc_meta['yllcorner'])
 
     })
 

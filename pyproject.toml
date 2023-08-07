@@ -1,0 +1,39 @@
+[build-system]
+requires = ["flit_core >=3.4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "rastertools"
+authors = [
+    {name = "Nicklas Simonsen", email = "nisi@dhigroup.com"},
+]
+description = "Raster utility tools"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["gis", "geospatial", "geographic", "raster", "vector", "remote sensing"]
+
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "numpy>=1.11.0",
+    "rasterio",
+    "pandas",
+    "geopandas",
+    "xarray",
+    "pyogrio"
+]
+dynamic = ["version"]
+
+[project.urls]
+"Source Code" = "https://github.com/Nick0693/python-rastertools"

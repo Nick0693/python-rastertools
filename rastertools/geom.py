@@ -1,9 +1,9 @@
+from __future__ import annotations
 from pathlib import Path
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple, List, Dict
 
 import geopandas as gpd
 import rasterio as rst
-import shapely
 import xarray as xr
 from rasterio.features import shapes
 from rasterio.mask import mask
@@ -11,6 +11,10 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject, calculate_default_transform
 from shapely.geometry import box
 from pyogrio import read_dataframe
+
+if TYPE_CHECKING:
+    from shapely.geometry.polygon import Polygon 
+    from numpy import ndarray
 
 
 def vectorize(in_raster : str) -> gpd.GeoDataFrame:
@@ -113,7 +117,7 @@ def intersect(path1 : str, path2 : str) -> Tuple:
     return tuple(out_files)
 
 
-def _get_raster_bounds(raster_path : str) -> shapely.geometry.polygon.Polygon:
+def _get_raster_bounds(raster_path : str) -> Polygon:
     """_summary_
 
     Parameters
@@ -129,7 +133,7 @@ def _get_raster_bounds(raster_path : str) -> shapely.geometry.polygon.Polygon:
     return bbox
 
 
-def _get_shp_bounds(shp_path : str) -> shapely.geometry.polygon.Polygon:
+def _get_shp_bounds(shp_path : str) -> Polygon:
     """_summary_
 
     Parameters
@@ -145,7 +149,7 @@ def _get_shp_bounds(shp_path : str) -> shapely.geometry.polygon.Polygon:
     return bbox
 
 
-def get_bounds(path : str) -> Tuple[shapely.geometry.polygon.Polygon, str]:
+def get_bounds(path : str) -> Tuple[Polygon, str]:
     """_summary_
 
     Parameters
@@ -167,7 +171,7 @@ def resample(
     img_path : str, 
     res : float, 
     how : str = 'nearest'
-    ) -> Tuple[np.ndarray, Dict]:
+    ) -> Tuple[ndarray, Dict]:
     """
     Resamples a raster image to the specified resolution
 
@@ -213,7 +217,7 @@ def resample(
 def warp(
     src_path : str, 
     dst_path : str, 
-    ) -> Tuple[np.ndarray, Dict]:
+    ) -> Tuple[ndarray, Dict]:
     """
     Aligns a raster using a reference raster by projecting it and warping if a
     projection is not sufficient.
