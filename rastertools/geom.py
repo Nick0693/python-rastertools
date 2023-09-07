@@ -12,15 +12,17 @@ from rasterio.warp import reproject, calculate_default_transform
 from shapely.geometry import box
 from pyogrio import read_dataframe
 
+from .io import Raster
+
 if TYPE_CHECKING:
     from shapely.geometry.polygon import Polygon 
     from numpy import ndarray
 
 
-def vectorize(in_raster : str) -> gpd.GeoDataFrame:
+def vectorize(raster, transform=None, nodata=None, crs=None, band=1, **kwargs) -> gpd.GeoDataFrame:
     """
     Polygonizes a raster based on contiguous areas of equal value. Output is a list of shapes
-    in GeoJSON format.
+    in GeoJSON format. Only works for integer encoded arrays.
     
     Parameters
     ----------
@@ -30,21 +32,21 @@ def vectorize(in_raster : str) -> gpd.GeoDataFrame:
     ----------
         gdf: singleparts geodataframe with all polygons
     """
-    
-    with rst.Env():
-        with rst.open(in_raster) as src:
-            image = src.read(1)
-            results = ({
-                'properties': {
-                    'raster_val': v
-                }, 
-                'geometry': s
-            } for _, (s, v) in enumerate(
-                shapes(image, mask=None, transform=src.transform)))
 
-            gdf = gpd.GeoDataFrame.from_features(list(results))
-            gdf = gdf.set_crs(src.crs)
-            gdf['raster_val'] = gdf['raster_val'].astype('uint8')
+    with Raster(raster, transform, nodata, crs, band) as src:
+        image = src.read(**kwargs)
+        results = ({
+            'properties': {
+                'raster_val': v
+            }, 
+            'geometry': s
+        } for _, (s, v) in enumerate(
+            shapes(image.array, mask=None, transform=image.transform)))
+
+        gdf = gpd.GeoDataFrame.from_features(list(results))
+        gdf = gdf.set_crs(image.crs)
+        gdf['raster_val'] = gdf['raster_val'].astype('uint8')
+        gdf = gdf[gdf['raster_val']!=image.nodata]
             
     return gdf
 
