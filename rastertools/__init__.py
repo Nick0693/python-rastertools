@@ -1,4 +1,3 @@
-from .geom import vectorize, merge, intersect, warp, resample
-from .utils import ascii_to_tif
+from . import geom, io
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
