@@ -19,7 +19,15 @@ if TYPE_CHECKING:
     from numpy import ndarray
 
 
-def vectorize(raster, transform=None, nodata=None, crs=None, band=1, **kwargs) -> gpd.GeoDataFrame:
+def vectorize(
+        raster, 
+        transform=None, 
+        nodata=None, 
+        crs=None, 
+        count=1, 
+        band=1, 
+        **kwargs
+    ) -> gpd.GeoDataFrame:
     """
     Polygonizes a raster based on contiguous areas of equal value. Output is a list of shapes
     in GeoJSON format. Only works for integer encoded arrays.
@@ -33,7 +41,7 @@ def vectorize(raster, transform=None, nodata=None, crs=None, band=1, **kwargs) -
         gdf: singleparts geodataframe with all polygons
     """
 
-    with Raster(raster, transform, nodata, crs, band) as src:
+    with Raster(raster, transform, nodata, crs, count, band) as src:
         image = src.read(**kwargs)
         results = ({
             'properties': {

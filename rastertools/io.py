@@ -23,13 +23,14 @@ already_warned_crs = False
 
 class Raster:
     def __init__(
-            self, 
-            raster, 
-            transform=None, 
-            nodata=None, 
-            crs : str = None, 
-            band : int = 1
-        ):
+        self, 
+        raster, 
+        transform=None, 
+        nodata=None, 
+        crs : str = None,
+        count : int = 1,
+        band : int = None,
+    ):
         self.array = None
         self.src = None
 
@@ -42,11 +43,15 @@ class Raster:
             self.shape = raster.shape
             self.nodata = nodata
             self.crs = crs
+            self.count = count
 
         elif isinstance(raster, xr.DataArray):
             self.shape = raster.shape
-            if len(self.shape) == 3:
-                self.array = raster.loc[band]
+            if self.shape.ndim == 3:
+                if band is None:
+                    self.array = raster.data[:]
+                else:
+                    self.array = raster.loc[band]
             else:
                 self.array = raster.data[:]
             self.transform = raster.attrs['transform']
@@ -61,8 +66,9 @@ class Raster:
             self.src = rst.open(raster, 'r')
             self.transform = guard_transform(self.src.transform)
             self.shape = (self.src.height, self.src.width)
-            self.array = self.src.read(band)
+            self.array = self.src.read(indexes=band)
             self.crs = self.src.crs
+            self.count = self.src.count
 
             if nodata is not None:
                 # override with specified nodata
@@ -71,6 +77,7 @@ class Raster:
                 self.nodata = self.src.nodata
     
     def read(self, masked=False, bounds=None, window=None, boundless=True):
+        count = self.count
         nodata = self.nodata
         if nodata is None:
             nodata = -999
@@ -92,7 +99,7 @@ class Raster:
                 already_warned_crs = True
 
         if all([i is None for i in [bounds, window]]):
-            return Raster(self.array, self.transform, nodata, crs)
+            return Raster(self.array, self.transform, nodata, crs, count)
 
         else:
             new_affine = self.affine_transform(self, bounds, window, boundless)
@@ -114,10 +121,10 @@ class Raster:
                         )
 
                 new_array = self.src.read(
-                    self.band, window=window, boundless=boundless, masked=masked
+                    indexes=self.band, window=window, boundless=boundless, masked=masked
                 )
 
-        return Raster(new_array, new_affine, nodata)
+        return Raster(new_array, new_affine, nodata, crs, count)
     
     def affine_transform(self, bounds=None, window=None, boundless=True):
         """Performs a read against the underlying array source
