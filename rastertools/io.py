@@ -47,7 +47,7 @@ class Raster:
 
         elif isinstance(raster, xr.DataArray):
             self.shape = raster.shape
-            if self.shape.ndim == 3:
+            if len(self.shape) == 3:
                 if band is None:
                     self.array = raster.data[:]
                 else:
@@ -56,6 +56,7 @@ class Raster:
                 self.array = raster.data[:]
             self.transform = raster.attrs['transform']
             self.crs = raster.attrs['crs']
+            self.count = raster.attrs['count']
             if nodata is not None:
                 # override with specified nodata
                 self.nodata = float(nodata)
