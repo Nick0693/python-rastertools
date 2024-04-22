@@ -1,3 +1,3 @@
-from . import geom, io
+from . import geom, io, query
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
