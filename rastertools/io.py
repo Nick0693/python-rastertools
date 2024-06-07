@@ -76,6 +76,17 @@ class Raster:
                 self.nodata = float(nodata)
             else:
                 self.nodata = self.src.nodata
+        
+        self.meta = {
+            'driver' : 'GTiff',
+            'count' : self.count,
+            'dtype' : 'float32',
+            'height' : self.shape[0],
+            'width' : self.shape[1],
+            'transform' : self.transform,
+            'nodata' : self.nodata,
+            'crs' : self.crs
+        }
     
     def read(self, masked=False, bounds=None, window=None, boundless=True):
         count = self.count

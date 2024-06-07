@@ -66,7 +66,7 @@ def read_points(shapefile, transform, data_shape, limits=None):
     yi_valid = yi[good]
 
     df = pd.DataFrame(dict(depth=measured_valid, ii=xi_valid, jj=yi_valid))
-    df = df.groupby(["ii", "jj"])["depth"].median().reset_index()
+    df = df.groupby(["ii", "jj"])["bathymetry"].median().reset_index()
     x, y, m = [arr.flatten() for arr in np.split(df.values, indices_or_sections=[1, 2], axis=1)]
     x = x.astype('int')
     y = y.astype('int')
