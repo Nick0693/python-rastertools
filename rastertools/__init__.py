@@ -1,3 +1,3 @@
-from . import geom, io, query
+from . import geom, io, query, sentinel2
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
