@@ -11,6 +11,7 @@ __all__ = ['point_query']
 def point_query(
     raster,
     shapefile : str,
+    column_name : str,
     transform = None, 
     nodata : float = None, 
     crs : str = None, 
@@ -24,7 +25,7 @@ def point_query(
     
     with Raster(raster, transform, nodata, crs, count, band) as src:
         image = src.read(**kwargs)
-        x, y, m = read_points(shapefile, src.transform, src.shape, limits)
+        x, y, m = _read_points(shapefile, src.transform, src.shape, column_name, limits)
         data = image.array
     
     if mask is not None:
@@ -37,13 +38,13 @@ def point_query(
     return df
 
 
-def read_points(shapefile, transform, data_shape, limits=None):
+def _read_points(shapefile, transform, data_shape, column_name, limits=None):
     features = read_dataframe(shapefile)
     xy = np.zeros((2, len(features)))
     measured = np.zeros((len(features)))
     for i, feature in features.iterrows():
         xy[:, i] = feature.geometry.x, feature.geometry.y
-        measured[i] = feature['bathymetry']
+        measured[i] = feature[column_name]
 
     xi, yi = ~transform * xy
     xi = np.round(xi).astype(int)
@@ -66,7 +67,7 @@ def read_points(shapefile, transform, data_shape, limits=None):
     yi_valid = yi[good]
 
     df = pd.DataFrame(dict(depth=measured_valid, ii=xi_valid, jj=yi_valid))
-    df = df.groupby(["ii", "jj"])["depth"].median().reset_index()
+    df = df.groupby(['ii', 'jj'])[column_name].median().reset_index()
     x, y, m = [arr.flatten() for arr in np.split(df.values, indices_or_sections=[1, 2], axis=1)]
     x = x.astype('int')
     y = y.astype('int')
