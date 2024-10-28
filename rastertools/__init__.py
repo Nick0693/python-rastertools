@@ -1,3 +1,6 @@
-from . import geom, io, query, sentinel2
+from .io import Raster
+from .eo import s2stack
+from .geom import *
 
-__version__ = '0.3.3'
+
+__version__ = '1.0.0'
