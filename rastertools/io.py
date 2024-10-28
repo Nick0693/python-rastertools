@@ -1,6 +1,6 @@
 import warnings
+from typing import List
 
-from pathlib import Path
 import numpy as np
 import xarray as xr
 import rasterio as rst
@@ -8,11 +8,11 @@ import rasterio as rst
 from affine import Affine
 from rasterio.transform import guard_transform
 from rasterio.enums import MaskFlags
+from rasterio.transform import array_bounds
 
 
 class NodataWarning(UserWarning):
     pass
-
 
 # *should* limit NodataWarnings to once, but doesn't! Bug in CPython.
 # warnings.filterwarnings("once", category=NodataWarning)
@@ -25,36 +25,54 @@ class Raster:
     def __init__(
         self, 
         raster, 
-        transform=None, 
-        nodata=None, 
-        crs : str = None,
+        transform : rst.Affine = None, 
+        crs : str | rst.CRS = None,
+        nodata : float = None, 
         count : int = 1,
-        band : int = None,
+        bands : int | List = None,
     ):
-        self.array = None
+        self.data = None
         self.src = None
+        self.bands = bands
 
         if isinstance(raster, np.ndarray):
+            self.shape = raster.shape
+            self.height = raster.shape[-2]
+            self.width = raster.shape[-1]
+            if len(self.shape) == 3:
+                if bands is None:
+                    self.data = raster[:]
+                else:
+                    self.data = raster[bands]
+            else:
+                self.data = raster[:]
+
             if transform is None:
                 raise ValueError("Specify affine transform for numpy arrays")
             else:
                 self.transform = transform
-            self.array = raster
-            self.shape = raster.shape
-            self.nodata = nodata
+            self.res = self.transform[0]
+
+            self.bounds = array_bounds(self.height, self.width, self.transform)
             self.crs = crs
             self.count = count
+            self.nodata = nodata
 
         elif isinstance(raster, xr.DataArray):
             self.shape = raster.shape
+            self.height = raster.shape[-2]
+            self.width = raster.shape[-1]
             if len(self.shape) == 3:
-                if band is None:
-                    self.array = raster.data[:]
+                if bands is None:
+                    self.data = raster.data[:]
                 else:
-                    self.array = raster.loc[band]
+                    self.data = raster.loc[bands]
             else:
-                self.array = raster.data[:]
+                self.data = raster.data[:]
+
             self.transform = raster.attrs['transform']
+            self.res = self.transform[0]
+            self.bounds = array_bounds(self.height, self.width, self.transform)
             self.crs = raster.attrs['crs']
             self.count = raster.attrs['count']
             if nodata is not None:
@@ -66,8 +84,12 @@ class Raster:
         else:
             self.src = rst.open(raster, 'r')
             self.transform = guard_transform(self.src.transform)
-            self.shape = (self.src.height, self.src.width)
-            self.array = self.src.read(indexes=band)
+            self.res = self.transform[0]
+            self.shape = self.src.shape
+            self.height = self.src.height
+            self.width = self.src.width
+            self.bounds = self.src.bounds
+            self.data = self.src.read(indexes=bands)
             self.crs = self.src.crs
             self.count = self.src.count
 
@@ -81,8 +103,8 @@ class Raster:
             'driver' : 'GTiff',
             'count' : self.count,
             'dtype' : 'float32',
-            'height' : self.shape[0],
-            'width' : self.shape[1],
+            'height' : self.height,
+            'width' : self.width,
             'transform' : self.transform,
             'nodata' : self.nodata,
             'crs' : self.crs
@@ -90,16 +112,8 @@ class Raster:
     
     def read(self, masked=False, bounds=None, window=None, boundless=True):
         count = self.count
+        bands = self.bands
         nodata = self.nodata
-        if nodata is None:
-            nodata = -999
-            global already_warned_nodata
-            if not already_warned_nodata:
-                warnings.warn(
-                    "Setting nodata to -999; specify nodata explicitly", NodataWarning
-                )
-                already_warned_nodata = True
-        
         crs = self.crs
         if crs is None:
             crs = 'EPSG:4326'
@@ -111,15 +125,15 @@ class Raster:
                 already_warned_crs = True
 
         if all([i is None for i in [bounds, window]]):
-            return Raster(self.array, self.transform, nodata, crs, count)
+            return Raster(self.data, self.transform, crs, nodata, count, bands)
 
         else:
             new_affine = self.affine_transform(self, bounds, window, boundless)
 
-            if self.array is not None:
+            if self.data is not None:
                 # It's an ndarray already
                 new_array = boundless_array(
-                    self.array, window=window, nodata=nodata, masked=masked
+                    self.data, window=window, nodata=nodata, masked=masked
                 )
             elif self.src:
                 # It's an open rasterio dataset
@@ -133,10 +147,10 @@ class Raster:
                         )
 
                 new_array = self.src.read(
-                    indexes=self.band, window=window, boundless=boundless, masked=masked
+                    indexes=bands, window=window, boundless=boundless, masked=masked
                 )
 
-        return Raster(new_array, new_affine, nodata, crs, count)
+        return Raster(new_array, new_affine, crs, nodata, count, bands)
     
     def affine_transform(self, bounds=None, window=None, boundless=True):
         """Performs a read against the underlying array source
