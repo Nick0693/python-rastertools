@@ -28,17 +28,18 @@ class Raster:
         transform : rst.Affine = None, 
         crs : str | rst.CRS = None,
         nodata : float = None, 
-        count : int = 1,
         bands : int | List = None,
     ):
         self.data = None
         self.src = None
         self.bands = bands
+        self.count = len(bands) if isinstance(self.bands, list) else 1
 
         if isinstance(raster, np.ndarray):
             self.shape = raster.shape
             self.height = raster.shape[-2]
             self.width = raster.shape[-1]
+            self.dtype = raster.dtype
             if len(self.shape) == 3:
                 if bands is None:
                     self.data = raster[:]
@@ -55,13 +56,13 @@ class Raster:
 
             self.bounds = array_bounds(self.height, self.width, self.transform)
             self.crs = crs
-            self.count = count
             self.nodata = nodata
 
         elif isinstance(raster, xr.DataArray):
             self.shape = raster.shape
             self.height = raster.shape[-2]
             self.width = raster.shape[-1]
+            self.dtype = raster.dtype
             if len(self.shape) == 3:
                 if bands is None:
                     self.data = raster.data[:]
@@ -74,7 +75,6 @@ class Raster:
             self.res = self.transform[0]
             self.bounds = array_bounds(self.height, self.width, self.transform)
             self.crs = raster.attrs['crs']
-            self.count = raster.attrs['count']
             if nodata is not None:
                 # override with specified nodata
                 self.nodata = float(nodata)
@@ -92,6 +92,7 @@ class Raster:
             self.data = self.src.read(indexes=bands)
             self.crs = self.src.crs
             self.count = self.src.count
+            self.dtype = self.crs.dtype
 
             if nodata is not None:
                 # override with specified nodata
@@ -99,10 +100,11 @@ class Raster:
             else:
                 self.nodata = self.src.nodata
         
+        
         self.meta = {
             'driver' : 'GTiff',
             'count' : self.count,
-            'dtype' : 'float32',
+            'dtype' : self.dtype,
             'height' : self.height,
             'width' : self.width,
             'transform' : self.transform,
