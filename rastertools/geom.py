@@ -179,15 +179,15 @@ def merge(filelist : List[Path | str]) -> xr.DataArray:
 
 def intersect(filepaths : List[Path | str]) -> Tuple:
     """
-    _summary_
+    Extracts the intersecting area between all input files.
 
     Parameters:
-        filepaths (List[Path  |  str]): 
-            _description_
+        filepaths (List[Path | str]): 
+            List of paths to rasters or vectors to find the area of intersect between.
 
     Returns:
         Tuple: 
-            _description_
+            Input files cropped to the common extent in identical order.
     """    
     def get_bounds(path : str) -> Tuple[Polygon, str]:   
         def _get_raster_bounds(raster_path : str) -> Polygon: 
