@@ -27,6 +27,8 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.11.0",
+    "affine",
+    "shapely",
     "rasterio",
     "pandas",
     "geopandas",
