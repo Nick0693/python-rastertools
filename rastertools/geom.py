@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, List, Dict
+from typing import Tuple, List
 
 import geopandas as gpd
 import rasterio as rst
