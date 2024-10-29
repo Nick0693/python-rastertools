@@ -3,4 +3,4 @@ from .eo import s2stack
 from .geom import *
 
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
