@@ -110,9 +110,10 @@ def resample(
     with rst.open(raster) as src:
         profile = src.meta.copy()
         scale_factor = res / src.res[0]
+        bands = src.count if kwargs.get('indexes') is None else kwargs.get('indexes')
         img = src.read(
             out_shape=(
-                src.count, 
+                bands, 
                 int(src.height / scale_factor), 
                 int(src.width / scale_factor)
             ), 
