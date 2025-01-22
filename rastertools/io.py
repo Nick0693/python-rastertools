@@ -92,7 +92,7 @@ class Raster:
             self.data = self.src.read(indexes=bands)
             self.crs = self.src.crs
             self.count = self.src.count
-            self.dtype = self.crs.dtype
+            self.dtype = self.src.profile['dtype']
 
             if nodata is not None:
                 # override with specified nodata
@@ -113,7 +113,6 @@ class Raster:
         }
     
     def read(self, masked=False, bounds=None, window=None, boundless=True):
-        count = self.count
         bands = self.bands
         nodata = self.nodata
         crs = self.crs
@@ -127,10 +126,13 @@ class Raster:
                 already_warned_crs = True
 
         if all([i is None for i in [bounds, window]]):
-            return Raster(self.data, self.transform, crs, nodata, count, bands)
+            if self.src and bands is not None:
+                bands = [b-1 for b in bands] if isinstance(bands, list) else bands-1
+            return Raster(self.data, self.transform, crs, nodata, bands)
 
         else:
-            new_affine = self.affine_transform(self, bounds, window, boundless)
+            # new_affine = self.affine_transform(self, bounds, window, boundless)
+            transform = self.affine_transform(self, bounds, window, boundless)
 
             if self.data is not None:
                 # It's an ndarray already
@@ -151,8 +153,10 @@ class Raster:
                 new_array = self.src.read(
                     indexes=bands, window=window, boundless=boundless, masked=masked
                 )
+                if bands is not None:
+                    bands = [b-1 for b in bands] if isinstance(bands, list) else bands-1
 
-        return Raster(new_array, new_affine, crs, nodata, count, bands)
+        return Raster(new_array, transform, crs, nodata, bands)
     
     def affine_transform(self, bounds=None, window=None, boundless=True):
         """Performs a read against the underlying array source
