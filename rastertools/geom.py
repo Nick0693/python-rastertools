@@ -106,7 +106,7 @@ def resample(
         'sum' : Resampling(13),
         'rms' : Resampling(14)
     }
-    
+    raster = Path(raster)
     with rst.open(raster) as src:
         profile = src.meta.copy()
         scale_factor = res / src.res[0]
@@ -302,7 +302,7 @@ def warp(
     ) as src:
         src_img = src.read()
 
-    out_shape = (src_img.shape[0], *ref_img.shape) if np.ndim(src_img.data)==3 else ref_img.shape
+    out_shape = (src_img.shape[0], *ref_img.shape[-2:]) if np.ndim(src_img.data)==3 else ref_img.shape
     img, transform = reproject(
         source=src_img.data,
         destination=np.zeros(out_shape),
