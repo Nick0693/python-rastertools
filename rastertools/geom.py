@@ -312,7 +312,7 @@ def warp(
         dst_transform=ref_img.transform,
         dst_crs=ref_img.crs
     )
-    height, width = img.shape
+    height, width = img.shape[-2:]
     left, bottom, right, top = ref_img.bounds
 
     # if a reprojection does not align the two arrays, the source will be warped instead.
