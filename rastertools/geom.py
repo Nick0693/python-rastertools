@@ -293,6 +293,7 @@ def warp(
     ) as ref:
         ref_img = ref.read()
 
+    src_name = Path(src_img).stem if isinstance(src_img, (Path, str)) else 'source_img'
     with Raster(
         src_img, 
         transform=src_transform, 
@@ -344,7 +345,7 @@ def warp(
     }
 
     data = xr.DataArray(
-        img, dims=('band', 'y', 'x'), attrs=meta, name=Path(src_img).stem, 
+        img, dims=('band', 'y', 'x'), attrs=meta, name=src_name,
         coords=[range(d) for d in img.shape]
     )
             
